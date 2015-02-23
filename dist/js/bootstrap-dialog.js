@@ -207,6 +207,7 @@
     BootstrapDialog.DEFAULT_TEXTS['OK'] = 'OK';
     BootstrapDialog.DEFAULT_TEXTS['CANCEL'] = 'Cancel';
     BootstrapDialog.DEFAULT_TEXTS['CONFIRM'] = 'Confirmation';
+    BootstrapDialog.DEFAULT_TEXTS['REQUIRED_FIELD'] = 'This field is required!';
 
     BootstrapDialog.SIZE_NORMAL = 'size-normal';
     BootstrapDialog.SIZE_SMALL = 'size-small';
@@ -1233,6 +1234,192 @@
                 }]
         }).open();
     };
+
+
+	/**
+	* Prompt window
+	*
+	* @returns the created dialog instance
+	*/
+	BootstrapDialog.prompt = function() {
+        var options = {};
+        var defaultOptions = {
+            type: BootstrapDialog.TYPE_PRIMARY,
+            title: null,
+            message: null,
+            closable: false,
+            draggable: false,
+            btnCancelLabel: BootstrapDialog.DEFAULT_TEXTS.CANCEL,
+            btnOKLabel: BootstrapDialog.DEFAULT_TEXTS.OK,
+            btnCancelClass: 'btn-default',
+            btnOKClass: null,
+            placeholder: '',
+            inputType: 'text',
+			inputRequired: false,
+			inputRegEx: /(.)+/,
+			requiredMessage: BootstrapDialog.DEFAULT_TEXTS.REQUIRED_FIELD,
+            callback: null
+        };
+
+		if (typeof arguments[0] === 'object' && arguments[0].constructor === {}.constructor) {
+            options = $.extend(true, defaultOptions, arguments[0]);
+        } else {
+            options = $.extend(true, defaultOptions, {
+                message: arguments[0],
+                closable: false,
+                buttonLabel: BootstrapDialog.DEFAULT_TEXTS.OK,
+                callback: typeof arguments[1] !== 'undefined' ? arguments[1] : null
+            });
+        }
+        if (options.btnOKClass === null) {
+            options.btnOKClass = ['btn', options.type.split('-')[1]].join('-');
+        }
+
+        var $field = $('<input />')
+                            .addClass('form-control')
+                            .attr('placeholder', options.placeholder)
+                            .attr('type', options.inputType);
+
+        var $text = $('<label></label>').addClass('control-label').html(options.message);
+        var $help = $('<small class="help-block"></small>').hide().html(options.requiredMessage);
+        options.message = $('<div></div>').addClass('form-group');
+        options.message.append($text);
+        options.message.append($field);
+		options.message.append($help);
+
+
+        return new BootstrapDialog({
+            type: options.type,
+            title: options.title,
+            message: options.message,
+            closable: options.closable,
+            draggable: options.draggable,
+			onshown: function() {
+				$field.focus();
+			},
+            data: {
+                callback: options.callback
+            },
+            buttons: [{
+                    label: options.btnCancelLabel,
+                    cssClass: options.btnCancelClass,
+                    action: function(dialog) {
+                        typeof dialog.getData('callback') === 'function' && dialog.getData('callback')(null, dialog);
+                        dialog.close();
+                    }
+                }, {
+                    label: options.btnOKLabel,
+                    cssClass: options.btnOKClass,
+					hotkey: 13,
+                    action: function(dialog) {
+                        var value = $field.val();
+						if(options.inputRequired && value.match(options.inputRegEx) === null) {
+							options.message.addClass('has-error');
+							$help.show();
+							return;
+						} else {
+							options.message.removeClass('has-error').addClass('has-success');
+							$help.hide();
+						}
+						typeof dialog.getData('callback') === 'function' && dialog.getData('callback')(value, dialog);
+                    }
+                }]
+        }).open();
+
+    };
+
+	/**
+	* Select options window
+	*
+	* @returns the created dialog instance
+	*/
+	BootstrapDialog.select = function() {
+        var options = {};
+        var defaultOptions = {
+            type: BootstrapDialog.TYPE_PRIMARY,
+            title: null,
+            message: null,
+            closable: false,
+            draggable: false,
+            btnCancelLabel: BootstrapDialog.DEFAULT_TEXTS.CANCEL,
+            btnOKLabel: BootstrapDialog.DEFAULT_TEXTS.OK,
+            btnCancelClass: 'btn-default',
+            btnOKClass: null,
+            options: [],
+			inputRequired: false,
+			requiredMessage: BootstrapDialog.DEFAULT_TEXTS.REQUIRED_FIELD,
+            callback: null
+        };
+
+		if (typeof arguments[0] === 'object' && arguments[0].constructor === {}.constructor) {
+            options = $.extend(true, defaultOptions, arguments[0]);
+        } else {
+            options = $.extend(true, defaultOptions, {
+                message: arguments[0],
+                closable: false,
+                buttonLabel: BootstrapDialog.DEFAULT_TEXTS.OK,
+                callback: typeof arguments[1] !== 'undefined' ? arguments[1] : null
+            });
+        }
+        if (options.btnOKClass === null) {
+            options.btnOKClass = ['btn', options.type.split('-')[1]].join('-');
+        }
+
+        var $field = $('<select></select>').addClass('form-control');
+		var opIndex = {};
+		options.options.forEach(function(op, i) {
+			$field.append('<option value="' + op.value + '">' + op.text + '</option>');
+			opIndex[op.value] = op;
+		});
+
+		$field.on('change', function() {
+			$('body').focusin();
+		});
+
+        var $text = $('<label></label>').addClass('control-label').html(options.message);
+        var $help = $('<small class="help-block"></small>').hide().html(options.requiredMessage);
+        options.message = $('<div></div>').addClass('form-group');
+        options.message.append($text);
+        options.message.append($field);
+		options.message.append($help);
+
+        return new BootstrapDialog({
+            type: options.type,
+            title: options.title,
+            message: options.message,
+            closable: options.closable,
+            draggable: options.draggable,
+            data: {
+                callback: options.callback
+            },
+            buttons: [{
+                    label: options.btnCancelLabel,
+                    cssClass: options.btnCancelClass,
+                    action: function(dialog) {
+                        typeof dialog.getData('callback') === 'function' && dialog.getData('callback')(null, dialog);
+                        dialog.close();
+                    }
+                }, {
+                    label: options.btnOKLabel,
+                    cssClass: options.btnOKClass,
+					hotkey: 13,
+                    action: function(dialog) {
+                        var value = $field.val();
+						if(options.inputRequired && $.trim(value) == '') {
+							options.message.addClass('has-error');
+							$help.show();
+							return;
+						} else {
+							options.message.removeClass('has-error').addClass('has-success');
+							$help.hide();
+						}
+
+                        typeof dialog.getData('callback') === 'function' && dialog.getData('callback')(opIndex[value], dialog);
+                    }
+                }]
+        }).open();
+    };
+
 
     /**
      * Warning window

@@ -1294,6 +1294,9 @@
             message: options.message,
             closable: options.closable,
             draggable: options.draggable,
+			onshown: function() {
+				$field.focus();
+			},
             data: {
                 callback: options.callback
             },
